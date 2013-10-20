@@ -1,40 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>{{ title }}</title>
+    <link href="/static/DBGUI/css/bootstrap-responsive.css" rel="stylesheet"/>
+    <link href="/static/DBGUI/css/bootstrap.css" rel="stylesheet"/>
+    <link href="/static/DBGUI/css/classic.css" rel="stylesheet"/>
+    <link href="/static/DBGUI/css/classic.date.css" rel="stylesheet"/>
+    <link href="/static/DBGUI/css/classic.time.css" rel="stylesheet"/>
+    <script src="/static/DBGUI/js/jquery-2.0.3.js"></script>
+    <script src="/static/DBGUI/js/bootstrap.js"></script>
+    <script src="/static/DBGUI/js/picker.js"></script>
+    <script src="/static/DBGUI/js/picker.date.js"></script>
+    <script src="/static/DBGUI/js/picker.time.js"></script>
 
-    <title>Hourly Energy Consumption Data</title>
-
+    <script>
+        $(function () {
+            $(".datepicker").pickadate({
+                selectYears: true,
+                selectMonths: true,
+                max: true
+            });
+            $(".timepicker").pickatime({
+                interval: 120
+            })
+        });
+    </script>
+    <style>
+        .alert.alert-error {
+            margin-left: 20px;
+            width: 68%;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
 
-<h1>Select: </h1>
-
-{% if form.errors %}
-    <p style="color: red;">
-        Please correct the error{{ form.errors|pluralize }} below.
-    </p>
-{% endif %}
-
-<form action="" method="post">
-    {% csrf_token %}
-
-    <div class="field">
-        {{ form.start_time.errors }}
-        <label for="id_subject">Start Day:</label>
-        {{ form.start_time }}
+<div class="container">
+    <div class="row-fluid">
+        <h2 class="page-header">IIITD - Access Control</h2>
     </div>
-    <div class="field">
-        {{ form.end_time.errors }}
-        <label for="id_email">End Day:</label>
-        {{ form.end_time }}
+</div>
+
+
+<div class="container">
+    <div class="row">
+
+        {% if form.errors %}
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <div class="alert alert-error">
+                        <strong>{{ error|escape }}</strong>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <div class="alert alert-error">
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form action="" method="post">
+            {% csrf_token %}
+
+            <div class="span3 pull-left control-group">
+                <label>Start date</label>
+                {{ form.startDate }}
+                <label>Start time</label>
+                {{ form.startTime }}
+            </div>
+
+            <div class="span3 pull-left control-group">
+                <label>End date</label>
+                {{ form.endDate }}
+                <label>End time</label>
+                {{ form.endTime }}
+
+            </div>
+            <div class="span3 pull-left control-group">
+                <label>Room</label>
+                {{ form.room }}
+                            <div>
+                    <input type="submit" class="btn-success pull-right" value="View Data">
+                </div>
+            </div>
+
+        </form>
     </div>
-    <div class="field">
-        {{ form.building.errors }}
-        <label for="id_message">Building:</label>
-        {{ form.building }}
-    </div>
-    <input type="submit" value="Download .xls file">
-</form>
+</div>
 </body>
 </html>

@@ -3,51 +3,62 @@ from datetime import datetime
 from django.db import models
 
 
-class Room(models.Model):
+class Building(models.Model):
     name = models.CharField(max_length=60, primary_key=True)
-    building_choices = (
-        ('A', 'Academic'),
-        ('L', 'Library'),
-        ('M', 'Mess'),
-    )
-    floor_choices = (
-        ('0', 'Ground'),
-        ('1', 'First'),
-        ('2', 'Second'),
-        ('3', 'Third'),
-        ('4', 'Fourth'),
-        ('5', 'Fifth'),
-    )
-
-    wing_choices = (
-        ('0', 'NA'),
-        ('A', 'A'),
-        ('B', 'B'),
-    )
-
-    building = models.CharField(max_length=1, choices=building_choices, blank=False)
-    floor = models.CharField(max_length=1, choices=floor_choices, blank=False)
-    wing = models.CharField(max_length=1, choices=wing_choices, blank=False)
 
     def __unicode__(self):
-        return "%s | %s building, %s floor, %s wing" % (self.name, self.get_building_display(), self.get_floor_display(), self.wing)
+        return "%s" % self.name
+
+
+class Floor(models.Model):
+    bID = models.ForeignKey(Building, null=False, verbose_name="Building")
+    floor = models.PositiveSmallIntegerField(default=0, null=False)
+
+    def __unicode__(self):
+        return "%s, %d floor" % (self.bID.name, self.floor)
+
+
+class Room(models.Model):
+    fID = models.ForeignKey(Floor, null=False, verbose_name="Floor")
+    name = models.CharField(max_length=60)
+
+    def __unicode__(self):
+        return "%s - %s" % (self.fID, self.name)
 
 
 class Device(models.Model):
-    inRoom = models.ForeignKey(Room)
-    tag = models.CharField(max_length=60, blank=False, verbose_name="Name in DB")
+    """ type 0: Reader, type 1: In
+    """
+    name = models.CharField(max_length=30, primary_key=True, verbose_name="MSSQL Name")
+    dType = models.SmallIntegerField(null=False, default=0, verbose_name="Device Type [0: reader, 1: in]")
 
     def __unicode__(self):
-        return "In room: %s Tag: %s" % (self.inRoom, self.tag)
+        return "%s - Type %d" % (self.name, self.dType)
+
+
+class RoomDevice(models.Model):
+    room = models.ForeignKey(Room, null=False)
+    device = models.ForeignKey(Device, null=False)
+
+    def __unicode__(self):
+        return "%s" % (self.device)
+
+class DataRequestManager(models.Manager):
+    def create_req(self, start, end, room, rTime, rIP):
+        req = self.create(start_time=start, end_time=end, room=room, request_time=rTime, request_IP=rIP)
+        return req
 
 
 class DataRequest(models.Model):
-    start_time = models.DateTimeField(blank=False, verbose_name="Start Time")
-    end_time = models.DateTimeField(blank=False, verbose_name="End Time")
+    start_date = models.DateTimeField(blank=False, verbose_name="Start Date")
+    end_date = models.DateTimeField(blank=False, verbose_name="End Date")
+    start_time = models.TimeField(blank=False, verbose_name="Start Time")
+    end_time = models.TimeField(blank=False, verbose_name="End Time")
     room = models.ForeignKey(Room, blank=False, verbose_name="Room")
-
     request_time = models.DateTimeField(default=datetime.now(), blank=False)
     request_IP = models.IPAddressField(blank=False)
+
+    objects = DataRequestManager()
 
     def __unicode__(self):
         return "%s Start: %s End: %s" % (

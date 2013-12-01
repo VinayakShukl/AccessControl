@@ -71,7 +71,7 @@ STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    '/home/vinayak/AccessControl/static',
+    '/home/pervasive/AccessControl/static',
 )
 
 # List of finder classes that know how to find static files in
@@ -95,6 +95,7 @@ TEMPLATE_LOADERS = (
 TEMPLATE_CONTEXT_PROCESSORS = {
     'django.core.context_processors.request',
     'django.contrib.auth.context_processors.auth',
+    'django.core.context_processors.static',
 }
 
 MIDDLEWARE_CLASSES = (
@@ -127,10 +128,12 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'DBGUI',
-    'datetimewidget',
     'django_tables2',
+    'django_tables2_reports',
     'south',
 )
+
+EXCEL_SUPPORT = 'openpyxl' #or 'xlwt', 'pyexcelerator'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

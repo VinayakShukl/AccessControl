@@ -5,14 +5,67 @@
     <title>{{ title }}</title>
     <link href="/static/DBGUI/css/bootstrap-responsive.css" rel="stylesheet"/>
     <link href="/static/DBGUI/css/bootstrap.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="/static/DBGUI/css/screen.css" />
+    <link rel="stylesheet" href="/static/DBGUI/css/screen.css"/>
+    <script src="/static/DBGUI/js/jquery-2.0.3.js"></script>
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="http://code.highcharts.com/modules/exporting.js"></script>
 </head>
+
+
 <body>
+
 <div class="container">
     <div class="row-fluid">
-        <h2 class="page-header">IIITD - Access Control</h2>
+        <h2 class="page-header">IIITD - Access Control<button onclick="goHome()" type="button" class="pull-right btn btn-success">Home</button></h2>
+
     </div>
-    {% render_table info %}
+
+    <div class="span5 pull-left">
+        {% render_table info %}
+    </div>
+
+    <div class="span7 pull-right" id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 </div>
+
 </body>
 </html>
+
+<script>
+    function goHome(){
+        window.location='/';
+    }
+
+    $(function () {
+        $('#container').highcharts({
+            chart: {
+                type: 'spline'
+            },
+            title: {
+                text: 'Occupancy Chart'
+            },
+            subtitle: {
+                text: 'Assume 0 at start. +1 for entry, -1 for exit.'
+            },
+            xAxis: {
+                type: 'datetime'
+            },
+            yAxis: {
+                title: {
+                    text: 'Number of occupants'
+                }
+            },
+            tooltip: {
+                formatter: function() {
+                        return '<b>'+ this.series.name +'</b><br/>'+
+                        Highcharts.dateFormat('%e %b %H:%M:%S', this.x) +': '+ this.y +' occupants';
+                }
+            },
+
+            series: [{
+                // Define the data points. All series have a dummy year
+                // of 1970/71 in order to be compared on the same x axis. Note
+                // that in JavaScript, months start at 0 for January, 1 for February etc.
+                data: {{ chart }}
+            }]
+        });
+    });</script>

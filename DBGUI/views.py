@@ -1,71 +1,58 @@
-import pyodbc
-import datetime
-
-from django.shortcuts import render
-import django_tables2 as tables
-from django_tables2 import RequestConfig
+from django.shortcuts import render, redirect, render_to_response
+from django.template import RequestContext
+from django_tables2_reports.config import RequestConfigReport as RequestConfig
+from django_tables2_reports.utils import create_report_http_response
 
 from models import *
 from forms import DataRequestForm1
 
+from accesscontrol import get_http_resonse
 
-def process_form(form, rIP):
+
+reqtable = []
+chartList = []
+
+def process_form(form, request):
     building_name = form.cleaned_data['room']
-    startDate = form.cleaned_data['startDate']
-    startTime = form.cleaned_data['startTime']
-    endDate = form.cleaned_data['endDate']
-    endTime = form.cleaned_data['endTime']
-    info = {}
-    info['room'] = building_name
-    info['sTime'] = datetime.datetime.combine(startDate, startTime)
-    info['eTime'] = datetime.datetime.combine(endDate, endTime)
-    info['rTime'] = datetime.datetime.now()
-    info['rIP'] = rIP
-    print str(info['room']) + " -> " + str(info['sTime']) + " TO " + str(info['eTime']) + " | " + str(
-        info['rTime']) + "@" + str(info['rIP'])
+    startdate = form.cleaned_data['start_date']
+    starttime = form.cleaned_data['start_time']
+    enddate = form.cleaned_data['end_date']
+    endtime = form.cleaned_data['end_time']
+    info = {'room': building_name, 'sTime': datetime.combine(startdate, starttime),
+            'eTime': datetime.combine(enddate, endtime), 'rTime': datetime.now(), 'rIP': get_client_ip(request)}
     return info
 
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[-1].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 def home(request):
+    global reqtable, chartList
     form = DataRequestForm1()
     if request.method == 'POST':
         form = DataRequestForm1(request.POST, request)
         if form.is_valid():
-            print "valid"
-            uRoom = form.cleaned_data['room']
-            for x in RoomDevice.objects.filter(room=uRoom.id):
-                print x
-                #info = process_form(form, request.META.get('REMOTE_ADDR'))
-                #print info['room'], type(info['room'])
-                #DataRequest.objects.create_req(info['sTime'], info['eTime'], info['room'], info['rTime'], info['rIP'])
-                #DataRequest.objects.create_req(info['sDate'])
-                #return details(request, info)
+            infodict = process_form(form, request)
+            reqtable, chartList = get_http_resonse(infodict)
+            return redirect('/details/')
         else:
             print form.errors
     return render(request, 'RequestForm.html', {'form': form, 'title': "Access Control"})
 
 
-class NameTable(tables.Table):
-    time = tables.DateTimeColumn()
-    f = tables.Column()
-    l = tables.Column()
-    d = tables.Column()
-
-    class Meta:
-        attrs = {"class": "paleblue"}
-
-
 def details(request):
-    con = pyodbc.connect('DRIVER={FreeTDS};SERVER=192.168.138.5;PORT=1433;DATABASE=WIN-PAK PRO;UID=sa')
-    cur = con.cursor()
-    cur.execute(
-        "SELECT HR.Timestamp, C.FirstName, C.LastName, HW.Name, CE.Name, HR.Param1, HR.Param3 FROM dbo.CardHolder as C, dbo.HWIndependentDevices as HW, dbo.HistoryReport as HR, dbo.CardEx as CE WHERE HR.Link3 = C.RecordID AND HR.Link1 = HW.DeviceID AND CE.CardHolderID = C.RecordID AND HR.Timestamp BETWEEN " + "'20131114 00:00:00'" + "AND " + "'20141114 23:59:59'")
-    rows = cur.fetchall()
-    l = []
-    for r in rows:
-        l.append({'time': r[0], 'f': r[1], 'l': r[2], 'd': r[3]})
-    t = NameTable(l)
-    RequestConfig(request).configure(t)
-    #print type(rows)
-    con.close()
-    return render(request, 'details.html', {'title': "Details", 'info': t})
+    global reqtable, chartList
+    #RequestConfig(request).configure(reqTable)
+    table_to_report = RequestConfig(request, paginate={"per_page": 15}).configure(reqtable)
+    if table_to_report:
+        return create_report_http_response(table_to_report, request)
+    return render_to_response('details.html',
+                              {'title': "Details", 'info': reqtable, 'chart': chartList},
+                              context_instance=RequestContext(request))
+    #return render(request, 'details.html', {'title': "Details", 'info': reqTable})

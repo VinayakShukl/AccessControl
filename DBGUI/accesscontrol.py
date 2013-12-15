@@ -1,5 +1,6 @@
 import pyodbc
 from operator import itemgetter
+import operator
 
 import django_tables2 as tables
 from django_tables2_reports.tables import TableReport
@@ -35,8 +36,14 @@ def generate_queries(infodict):
     room = infodict['room']
     sTime = "'" + infodict['sTime'].strftime('%Y%m%d %H:%M:%S') + "'"
     eTime = "'" + infodict['eTime'].strftime('%Y%m%d %H:%M:%S') + "'"
-    reader = "'" + str(RoomDevice.objects.filter(room=room.id)[0].device.name) + "'"
-    button = "'" + str(RoomDevice.objects.filter(room=room.id)[1].device.name) + "'"
+    res = RoomDevice.objects.filter(room=room.id)
+
+    if res[0].device.dType == 0:
+        reader = "'" + str(res[0].device.name) + "'"
+        button = "'" + str(res[1].device.name) + "'"
+    else:
+        reader = "'" + str(res[1].device.name) + "'"
+        button = "'" + str(res[0].device.name) + "'"
 
     readerquery = ('SELECT HR.Timestamp, C.FirstName, C.LastName, HW.Name '
                    'FROM dbo.CardHolder as C, dbo.HWIndependentDevices as HW, dbo.HistoryReport as HR, dbo.CardEx as CE '
@@ -53,7 +60,6 @@ def generate_queries(infodict):
                    "AND HW.Name = " + button + " "
                                                "AND HR.Timestamp BETWEEN " + sTime + " AND " + eTime + " ")
 
-    print sTime, eTime
     return readerquery, buttonquery
 
 
@@ -131,5 +137,7 @@ def addToTable(rows, type):
 
 def run_query(cursor, query):
     cursor.execute(query)
+    print query
     rows = cursor.fetchall()
+    #print rows
     return rows
